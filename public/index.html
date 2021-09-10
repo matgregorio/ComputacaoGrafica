@@ -41,6 +41,13 @@
         let spotLightRed, spotLightRedHelper, ambientLight, sunLight, sunLightHelper, lampLight;
         let spotLightMovementRight = true;
 
+        const uniforms = {
+            u_resolution: {type: "v2", value: new THREE.Vector2()},
+            u_time:{type: "f", value: 1.0},
+            u_mouse:{type: "v2", value: new THREE.Vector2()},
+        }
+        const clock = new THREE.Clock();
+
         const params = {
             sphereControls:{
                 showWireframe: false,
@@ -54,9 +61,8 @@
 
         function init(){
             scene = new THREE.Scene();
-            //scene.background = new THREE.color(0x333333);
+            scene.background = new THREE.Color(0x333333);
             camera_perspective = new THREE.PerspectiveCamera(45,aspect_ratio,0.1,1000);
-            camera_ortho = new THREE.OrthographicCamera(-5,5,5,-5,0.1,1000);
 
             active_camera = camera_perspective;
             active_camera.position.set(1,0.5,10);
@@ -65,111 +71,49 @@
             scene.add(axesHelper);
         //fazer os objetos
 
-        function createYellowSphere(){
-            const geometry = new THREE.SphereGeometry(1,20,20);
-            const materialBasic = new THREE.MeshBasicMaterial({
-                color:0x00ffff, wireframe: false, transparent: true, opacity: 1.0
+        function createShaderObject(){
+            const basicVertexShader = '
+            void main(){
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+            ';
+
+            const basicFragmentShader = '
+            void main(){
+                gl_FragColor = vec4(0.0,0.0,1.0,1.0);
+            }
+            ';
+
+            const scaleVertexShader = '
+            void main(){
+                vec3 scale = vec3(2.0,1.0,1.0);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position * scale, 1.0);
+            }
+            ';
+
+            const redAnimationFragmentShader = '
+            uniform vec2 u_mouse;
+            uniform vec2 u_resolution;
+            uniform float u_time;
+            
+            void main(){
+                gl_FragColor = vec4(abs(sin(u_time)), 0.0,0.0,1.0);
+            }
+            ';
+            const sphereGeometry = new THREE.SphereGeometry(1,128,256);
+            const planeGeometry = new THREE.PlaneBufferGeometry(4,4);
+            const material = new THREE.ShaderMaterial({
+                vertexShader: scaleVertexShader,
+                fragmentShader: redAnimationFragmentShader,
+                uniforms
             });
-            const materialNormal = new THREE.MeshBasicMaterial(
-                {wireframe:false, transparent:true, opacity:1.0}
-            );
-            sphere = new THREE.Mesh(geometry, materialBasic);
-            scene.add(sphere);
 
-            sphere.position.x = 1;
-            sphere.position.y = 1;
-            sphere.position.z = 1;
-            YellowSphereNormal = new VertexNormalsHelper(sphere, 0.1,0xffff00,1);
-            scene.add(YellowSphereNormal);
+            shaderMesh = new THREE.Mesh(sphereGeometry, material);
+            scene.add(shaderMesh);
 
-        } 
-        function createPlane(){
-            const geometry = new THREE.PlaneGeometry(100,100,50,50);
-            const material = new THREE.MeshBasicMaterial(
-                {color: 0xa6f995, wireframe: true, side: THREE.DoubleSide}
-            );
-            const plane = new THREE.Mesh(geometry, material);
-
-            plane.position.x = 0;
-            plane.position.y = 0.5;
-            plane.position.z = 0;
-            plane.rotation.x = Math.PI/2;
-
-            scene.add(plane);
+            shaderMesh.position.set(1,1,1);
         }
-        function createTorusKnot(){
-
-            const torusKnotGeometry = new THREE.TorusKnotGeometry();
-            const materialLambert = new THREE.MeshLambertMaterial({color: 0x6b7aff});
-
-            const torusKnot = new THREE.Mesh(torusKnotGeometry, materialLambert);
-            torusKnot.position.x = 0;
-            torusKnot.position.y = 1;
-            torusKnot.position.z = 0;
-
-            scene.add(torusKnot);
-        }
-        function createDodecahedron(){
-            const dodeGeometry = new THREE.DodecahedronGeometry(7,2);
-            const materialPhong = new THREE.MeshPhongMaterial(
-                {color: 0x58b33a, specular: 0xffffff, shininess: 30, flatShading: false}
-            );
-
-            dodecahedron = new THREE.Mesh(dodeGeometry, materialPhong);
-
-            dodecahedron.position.x = 8;
-            dodecahedron.position.y = 6;
-            dodecahedron.position.z = 2;
-            dodecahedron.scale.set(0.25,0.25,0.25);
-
-            scene.add(dodecahedron);
-        }
-        //createYellowSphere();
-        createPlane();
-        createTorusKnot();
-        createDodecahedron();
-
-        function addLightRed(){
-            spotLightRed = new THREE.SpotLight(0xff0000);
-            spotLightRed.position.set(0,10,0);
-            spotLightRed.castShadow = true;
-            scene.add(spotLightRed);
-            spotLightRedHelper = new THREE.SpotLightHelper(spotLightRed);
-            scene.add(spotLightRedHelper);
-        }
-        function addLightGreen(){
-            spotLightGreen = new THREE.SpotLight(0x008000);
-            spotLightGreen.position.set(0,20,0);
-            spotLightGreen.castShadow = true;
-            scene.add(spotLightGreen);
-            spotLightGreenHelper = new THREE.SpotLightHelper(spotLightGreen);
-            scene.add(spotLightGreenHelper);
-        }
-        function addLightBlue(){
-            spotLightBlue = new THREE.SpotLight(0x0000ff);
-            spotLightBlue.position.set(0,30,0);
-            spotLightBlue.castShadow = true;
-            scene.add(spotLightBlue);
-            spotLightBlueHelper = new THREE.SpotLightHelper(spotLightBlue);
-            scene.add(spotLightBlueHelper);
-        }
-        function addLights(){
-            ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            scene.add(ambientLight);
-
-            sunLight = new THREE.DirectionalLight(0xffff00, 0.5);
-            sunLight.target.position.set(0,0,0);
-            scene.add(sunLight);
-            scene.add(sunLight.target);
-
-            sunLightHelper = new THREE.DirectionalLightHelper(sunLight, 5, 0xffff00);
-            scene.add(sunLightHelper);
-        }
-        addLightRed();
-        addLightGreen();
-        addLightBlue();
-        addLights();
-
+        createShaderObject();
 
             renderer = new THREE.WebGLRenderer({antialias: true});
             renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -216,27 +160,10 @@
         const animate = function(){
             requestAnimationFrame(animate);
 
-            if(spotLightMovementRight == true){
-                spotLightBlue.position.x += 0.7;
-                spotLightGreen.position.x += 0.5;
-                spotLightBlue.position.x += 1;
-            }else{
-                spotLightBlue.position.x -= 1;
-                spotLightGreen.position.x -= 1;
-                spotLightBlue.position.x -= 1;
-            }
+            uniforms.u_time.value = clock.getElapsedTime();
 
-            if(spotLightGreen.position.x > 20){
-                spotLightMovementRight = false;
-            }else if(spotLightGreen.position.x < -20){
-                spotLightMovementRight = true;
-            }
             controls.update();
-            //YellowSphereNormal.update();
             stats.update();
-            spotLightRedHelper.update();
-            spotLightBlueHelper.update();
-            spotLightGreenHelper.update();
             renderer.render(scene, active_camera);
             
         };
