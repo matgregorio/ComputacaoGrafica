@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta = charset="utf-8"> 
+        <title>Hellow word CG</title>
+        <style>
+            body {margin:0;}
+        </style>
+        
+    </head>
+    <body>
+        
+        <script type="module">
+            import * as THREE from '/build/three.module.js' ;
+            import Stats from '/jsm/libs/stats.module.js';  
+            import {GUI} from '/jsm/libs/dat.gui.module.js';
+            import { FlyControls } from 'https://threejs.org/examples/jsm/controls/FlyControls.js';
+            
+            let stats;
+
+            const scene = new THREE.Scene();
+            let screen_width = window.innerWidth;
+            let screen_height = window.innerHeight;
+            let aspect_ratio = screen_width / screen_height;
+            const camera = new THREE.PerspectiveCamera(45,aspect_ratio,0.1, 1000);
+
+            
+ 
+            const renderer = new THREE.WebGLRenderer({antialias:true});
+            renderer.setSize(screen_width,screen_height);
+            document.body.appendChild(renderer.domElement);   
+
+            stats = new Stats();
+            let container = document.createElement('div');
+            document.body.appendChild(container);
+            container.appendChild(stats.dom);
+
+
+            window.addEventListener('resize', onWindowResize);
+            
+            function onWindowResize(){
+                screen_width = window.innerWidth;
+                screen_height = window.innerHeight;
+                aspect_ratio = screen_width/screen_height;
+
+                renderer.setSize(screen_width,screen_height);
+                camera.aspect = aspect_ratio;
+                camera.updateProjectionMatrix();
+            }
+
+            const axesHelper = new  THREE.AxesHelper(5);  
+            scene.add(axesHelper);
+
+            const geometry = new THREE.SphereGeometry(2,20,20);
+            const material = new THREE.MeshBasicMaterial({ color: 0xff1001,wireframe:true});
+            const esfera = new THREE.Mesh(geometry,material);
+            scene.add(esfera);
+
+
+            
+            camera.position.z = 10;
+            camera.position.x = 1;
+            camera.position.y = 1;
+
+
+            
+            esfera.position.x = 1;
+
+            
+            
+        //    const controls = new FlyControls( camera, renderer.domElement );
+
+        //     controls.movementSpeed = 1000;
+        //     controls.domElement = renderer.domElement;
+        //     controls.rollSpeed = Math.PI / 24;
+        //     controls.autoForward = false;
+        //     controls.dragToLook = false;
+
+
+            const controls = new FlyControls(camera, renderer.domElement);
+            controls.object = camera; // Camera a ser controlada
+            controls.domElement = renderer.domElement; // Serve para ler os comandos do mouse
+            controls.autoForward = false; // Para que a camera não se mova sozinha, apenas com o click.
+            controls.dragToLook = false; // Para o cursor do mouse rotacionar a camera
+            controls.movementSpeed = 0.001; // Velocidade de movimento da camera
+            controls.rollSpeed = 0.003; // Velocidade de rotação
+           
+           
+
+          
+
+            const animate = function(){
+                requestAnimationFrame(animate)
+
+                esfera.rotation.x += 0.0;
+                esfera.rotation.y += 0.001;
+                esfera.rotation.z += 0.0;
+
+                controls.update(1);
+
+                renderer.render(scene,camera);
+                
+                stats.update();
+                
+            };
+            animate();
+            
+            
+
+        </script>
+    </body>
+</html>
+
+
