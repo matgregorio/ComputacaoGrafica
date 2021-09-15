@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Page Title</title>
+    <style>
+        body{ margin: 0;}
+        .explicacao{
+            background-color: black;
+            color: white;
+            font-size: 1.1em;
+        }
+
+        b{
+            color: yellow;
+        }
+    </style>
+</head>
+<body>
+    </div>
+    <script type="module">
+        import * as THREE from "/build/three.module.js";
+        import Stats from "/jsm/libs/stats.module.js";
+        import {TrackballControls} from '/jsm/controls/TrackballControls.js';
+        
+        //definindo a largura e altura da tela
+        let SCREEN_WIDTH = window.innerWidth;
+        let SCREEN_HEIGHT = window.innerHeight;
+        let aspect_ratio = SCREEN_WIDTH / SCREEN_HEIGHT;//relação da leitura
+
+        let camera_perspective, active_camera, scene, renderer, stats, controls;
+        let shaderMesh, shaderEsfera, shaderTorus;
+
+        const uniforms = {
+            u_resolution: {type: "v2", value: new THREE.Vector2()},
+            u_time:{type: "f", value: 1.0},
+            u_mouse:{type: "v2", value: new THREE.Vector2()},
+            u_time01:{type: "f", value: 2.0},
+            u_st:{type: "v2", value: new THREE.Vector2()},
+            u_random:{type: "f", value: Math.random()},
+            u_st:{type: "v2", value: new THREE.Vector2()},
+        }
+        const clock = new THREE.Clock();
+        
+
+        function init(){
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x333333);
+            camera_perspective = new THREE.PerspectiveCamera(45,aspect_ratio,0.1,1000);
+
+            active_camera = camera_perspective;
+            active_camera.position.set(1,0.5,10);
+
+            let axesHelper = new THREE.AxesHelper(10);
+            scene.add(axesHelper);
+        //fazer os objetos
+
+        function createShaderObject(){
+            const basicVertexShader ='void main(){gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);}';
+            const vertexShaderAnimation = 'uniform float u_time;void main(){float count = (u_time/2.5);if(count > 3.0){count = 0.0;}vec3 escala = vec3(count,count,count);gl_Position = projectionMatrix * modelViewMatrix * vec4(position * escala,1.0);}';            
+            const AnimationFragmentShader = 
+            'uniform vec2 u_mouse;uniform vec2 u_resolution;uniform float u_time;uniform float u_time01;void main(){gl_FragColor =vec4(abs(sin(u_time)),abs(cos(u_time01)),0.0,1.0);}';
+            const BasicAnimation = 
+            'uniform vec2 u_mouse;uniform vec2 u_resolution;uniform float u_time;uniform float u_random;void main(){gl_FragColor = vec4((u_random),(1.0 - u_random),(1.0 - u_random),1.0);}';
+            
+            const box = new THREE.BoxGeometry(1,1,1);
+            const material = new THREE.ShaderMaterial({
+                vertexShader: basicVertexShader,
+                fragmentShader: AnimationFragmentShader,
+                uniforms
+            });
+            shaderMesh = new THREE.Mesh(box, material);
+			scene.add(box);
+            scene.add(shaderMesh);
+            shaderMesh.position.set(1,1,1);
+
+            const esfera = new THREE.SphereGeometry(1,30,30);
+            const materialEsfera = new THREE.ShaderMaterial({
+                vertexShader: vertexShaderAnimation,
+                fragmentShader: BasicAnimation,
+                uniforms
+            });
+            shaderEsfera = new THREE.Mesh(esfera,materialEsfera);
+            scene.add(esfera);
+            scene.add(shaderEsfera);
+            
+        }
+        createShaderObject();
+
+            renderer = new THREE.WebGLRenderer({antialias: true});
+            renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+            document.body.appendChild(renderer.domElement);
+
+            stats = new Stats();
+            document.body.appendChild(stats.dom);
+
+            const params = {
+                orthographicCamera: false
+            };
+
+            //const gui = new GUI();
+            
+            createControls(camera_perspective);
+            window.addEventListener('resize', onWindowsResize);
+        }
+
+        function onWindowsResize(){
+            SCREEN_WIDTH = window.innerWidth;
+            SCREEN_HEIGHT = window.innerHeight;
+            aspect_ratio = SCREEN_WIDTH / SCREEN_HEIGHT;
+
+            renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+
+            active_camera.aspect = aspect_ratio;
+            active_camera.updateProjectionMatrix();
+
+            uniforms.u_resolution.value.x = window.innerWidth;
+            uniforms.u_resolution.value.x = window.innerHeight;
+        }
+
+        function createControls(camera){
+            active_camera = camera;
+            active_camera.position.set(1,0.5,10);
+
+            controls = new TrackballControls(active_camera, renderer.domElement);
+
+            controls.rotateSpeed = 1.0;
+            controls.zoomSpeed = 1.2;
+            controls.panSpeed = 0.8;
+
+            controls.keys = ['KeyA', 'KeyS', 'KeyD'];
+
+        }
+
+        const animate = function(){
+            requestAnimationFrame(animate);
+
+            uniforms.u_time.value = clock.getElapsedTime();
+            uniforms.u_time01.value = clock.getElapsedTime();
+
+            controls.update();
+            stats.update();
+            renderer.render(scene, active_camera);
+            
+        };
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
